@@ -1,20 +1,6 @@
 {
-  "last_scan": "2026-07-01T17:05:24.913266",
-  "last_ausgabe": {
-    "2010": 26,
-    "2136": 13,
-    "2108": 13,
-    "2342": 6,
-    "2050": 14,
-    "2147": 13,
-    "2100": 26,
-    "2082": 13
-  },
-  "last_pdf_issue": {
-    "breitenguessbach": "2026-07",
-    "hirschaid": 26
-  },
-  "known_pdf_keys": [
-    "ef1c6090f8fb75b2fd384b28cbe53aad"
-  ]
+  "last_scan": null,
+  "last_ausgabe": {},
+  "last_pdf_issue": {},
+  "known_pdf_keys": []
 }

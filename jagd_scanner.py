@@ -1,4 +1,4 @@
-x#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Jagdgenossenschaft-Monitor – Autonomer Wochenscan
 Scannt Wittich-Mitteilungsblätter + Gemeinde-PDFs (Breitengüßbach, Hirschaid)
@@ -501,3 +501,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# x

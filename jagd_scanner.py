@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+x#!/usr/bin/env python3
 """
 Jagdgenossenschaft-Monitor – Autonomer Wochenscan
 Scannt Wittich-Mitteilungsblätter + Gemeinde-PDFs (Breitengüßbach, Hirschaid)
@@ -42,7 +42,8 @@ WITTICH_PUBS = {
     '2082': {'name': 'VG Ebern',                    'plz': '97514'},
 }
 
-STATE_FILE = 'known_findings.json'
+STATE_FILE    = 'known_findings.json'
+FINDINGS_FILE = 'findings_log.json'
 YEAR = datetime.date.today().year
 SESSION = requests.Session()
 SESSION.headers.update({'User-Agent': 'Mozilla/5.0 (compatible; JagdMonitor/1.0)'})
@@ -76,6 +77,41 @@ def load_state() -> dict:
 def save_state(state: dict):
     with open(STATE_FILE, 'w', encoding='utf-8') as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+def load_findings_log() -> dict:
+    if os.path.exists(FINDINGS_FILE):
+        with open(FINDINGS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {'last_scan': None, 'last_kw': None, 'findings': []}
+
+
+def save_findings_log(new_findings: list):
+    """Hängt neue Treffer an findings_log.json an (max. 500 Einträge gesamt)."""
+    log_data = load_findings_log()
+    today    = datetime.date.today()
+    kw       = today.isocalendar()[1]
+    year     = today.year
+    for f in new_findings:
+        entry = {
+            'date_found': today.isoformat(),
+            'kw':         kw,
+            'year':       year,
+            'source':     f.get('source', ''),
+            'plz':        f.get('plz', ''),
+            'ausgabe':    f.get('ausgabe', ''),
+            'title':      f.get('title', ''),
+            'url':        f.get('url', ''),
+            'excerpt':    f.get('excerpt', ''),
+        }
+        log_data['findings'].append(entry)
+    # Neueste zuerst, max 500
+    log_data['findings'] = log_data['findings'][-500:]
+    log_data['last_scan'] = datetime.datetime.now().isoformat()
+    log_data['last_kw']   = kw
+    log_data['last_year'] = year
+    with open(FINDINGS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(log_data, f, ensure_ascii=False, indent=2)
 
 
 def make_pdf_key(source: str, issue: str, text: str) -> str:
@@ -417,8 +453,8 @@ def _html_findings(findings: list, kw: int, year: int) -> str:
             f'background:#f8faf8;border-radius:0 6px 6px 0">'
             f'<div style="font-size:11px;color:#888;margin-bottom:4px">'
             f'{i}. &nbsp;\U0001f4f0 <strong>{f["source"]}</strong>'
-            f'&nbsp;·&nbsp;{f.get("ausgabe","")}'
-            f'&nbsp;·&nbsp;{plz_tag}</div>'
+            f'&nbsp;&middot;&nbsp;{f.get("ausgabe","")}'
+            f'&nbsp;&middot;&nbsp;{plz_tag}</div>'
             f'<div style="font-weight:700;color:#1a3a1a;font-size:14px;margin-bottom:6px">{f["title"]}</div>'
             f'<div style="font-size:12px;color:#555;line-height:1.5;white-space:pre-wrap">{f.get("excerpt","")}</div>'
             f'<a href="{f["url"]}" style="display:inline-block;margin-top:8px;font-size:12px;color:#2a6a2a">'
@@ -456,6 +492,7 @@ def main():
 
     state['last_scan'] = datetime.datetime.now().isoformat()
     save_state(state)
+    save_findings_log(all_findings)
 
     log(f"\nGesamt neue Treffer: {len(all_findings)}")
     send_email(all_findings)

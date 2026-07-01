@@ -1,35 +1,44 @@
-name: Jagd-Monitor Weekly Scan
+xname: Jagd-Monitor Weekly Scan
 
 on:
   schedule:
+    # Jeden Montag um 07:00 UTC = 08:00/09:00 Uhr deutscher Zeit
     - cron: '0 7 * * 1'
+  # Manuell auslösbar (zum Testen)
   workflow_dispatch:
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: write
+      contents: write   # Damit der Bot Dateien zurückschreiben kann
+
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
+
       - name: Python 3.11 einrichten
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Abhaengigkeiten installieren
+
+      - name: Abhängigkeiten installieren
         run: pip install -r requirements.txt
-      - name: Jagd-Monitor ausfuehren
+
+      - name: Jagd-Monitor ausführen
         env:
           GMAIL_USER:         ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_TO:           ${{ secrets.EMAIL_TO }}
           EMAIL_CC:           ${{ secrets.EMAIL_CC }}
         run: python jagd_scanner.py
-      - name: Scan-Status zurueckschreiben
+
+      - name: Scan-Status zurückschreiben
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name  "github-actions[bot]"
-          git add known_findings.json
+          git add known_findings.json findings_log.json
+          # Nur committen wenn sich etwas geändert hat
           git diff --staged --quiet || git commit -m "chore: update scan state $(date +%Y-%m-%d)"
           git push

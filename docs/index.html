@@ -1,0 +1,116 @@
+x<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🦌 Jagdgenossenschaft-Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f0; color: #1a2a1a; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #1a3a1a 0%, #2d5a2d 100%); color: #fff; padding: 28px 24px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header h1 { font-size: 1.6rem; font-weight: 700; }
+    header p  { margin-top: 4px; font-size: .85rem; opacity: .75; }
+    .meta-bar { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; font-size: .78rem; }
+    .badge { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); border-radius: 20px; padding: 3px 10px; }
+    .badge strong { color: #a8e6a8; }
+    .filter-bar { background: #fff; border-bottom: 1px solid #d8e8d8; padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .filter-bar input, .filter-bar select { border: 1px solid #c8dcc8; border-radius: 6px; padding: 6px 10px; font-size: .82rem; background: #f8fdf8; color: #1a2a1a; outline: none; }
+    .filter-bar input { flex: 1; min-width: 160px; }
+    .filter-bar input:focus, .filter-bar select:focus { border-color: #2d5a2d; box-shadow: 0 0 0 2px rgba(45,90,45,.15); }
+    .count-label { margin-left: auto; font-size: .78rem; color: #666; white-space: nowrap; }
+    main { max-width: 860px; margin: 0 auto; padding: 20px 16px 40px; }
+    .card { background: #fff; border-radius: 10px; border-left: 4px solid #2d5a2d; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 16px 18px; margin-bottom: 14px; transition: box-shadow .15s; }
+    .card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); }
+    .card-meta { font-size: .72rem; color: #888; margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .plz-tag { background: #e6f2e6; color: #1a4a1a; font-weight: 700; padding: 1px 7px; border-radius: 10px; font-size: .7rem; }
+    .kw-tag { background: #f0e8d0; color: #5a4010; padding: 1px 7px; border-radius: 10px; font-size: .7rem; }
+    .new-tag { background: #ffe8e8; color: #a01010; padding: 1px 7px; border-radius: 10px; font-size: .7rem; font-weight: 700; }
+    .card-title { font-weight: 700; font-size: 1rem; color: #1a3a1a; margin-bottom: 8px; line-height: 1.35; }
+    .card-excerpt { font-size: .82rem; color: #444; line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow: hidden; }
+    .card-excerpt.expanded { max-height: none; }
+    .expand-btn { background: none; border: none; color: #2d5a2d; font-size: .78rem; cursor: pointer; padding: 4px 0 0; display: block; text-decoration: underline; }
+    .card-link { display: inline-block; margin-top: 10px; font-size: .78rem; color: #2d5a2d; text-decoration: none; font-weight: 600; }
+    .card-link:hover { text-decoration: underline; }
+    .loading, .error, .empty { text-align: center; padding: 60px 20px; color: #666; }
+    .loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #d0e8d0; border-top-color: #2d5a2d; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #a03030; }
+    footer { text-align: center; padding: 16px; font-size: .72rem; color: #aaa; }
+    footer a { color: #2d5a2d; }
+    @media (max-width: 540px) { header h1 { font-size: 1.25rem; } .filter-bar { padding: 10px 12px; } main { padding: 14px 10px 40px; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🦌 Jagdgenossenschaft-Monitor</h1>
+  <p>PLZ 96120 · 96199 · 96149 · 97514 · 96191 · 96173 · 91332</p>
+  <div class="meta-bar">
+    <span class="badge">Letzter Scan: <strong id="last-scan">—</strong></span>
+    <span class="badge">KW <strong id="last-kw">—</strong></span>
+    <span class="badge">Treffer gesamt: <strong id="total-count">—</strong></span>
+  </div>
+</header>
+<div class="filter-bar">
+  <input type="search" id="search" placeholder="🔍  Suche in Titel oder Text …">
+  <select id="filter-source"><option value="">Alle Quellen</option></select>
+  <select id="filter-year"><option value="">Alle Jahre</option></select>
+  <span class="count-label" id="shown-count"></span>
+</div>
+<main id="main">
+  <div class="loading"><div class="loading-spinner"></div><p>Lade aktuelle Daten …</p></div>
+</main>
+<footer>Automatischer Scan jeden Montag · <a href="https://github.com/hoelzeljoe-dev/jagd-monitor" target="_blank">GitHub</a></footer>
+<script>
+var RAW_URL = 'https://raw.githubusercontent.com/hoelzeljoe-dev/jagd-monitor/main/findings_log.json';
+var allFindings = [];
+function loadData() {
+  fetch(RAW_URL + '?t=' + Date.now())
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      var sd = data.last_scan ? new Date(data.last_scan).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}) : '—';
+      document.getElementById('last-scan').textContent = sd;
+      document.getElementById('last-kw').textContent = data.last_kw != null ? data.last_kw : '—';
+      document.getElementById('total-count').textContent = (data.findings||[]).length;
+      allFindings = (data.findings||[]).slice().reverse();
+      buildFilters(); renderCards();
+    })
+    .catch(function(e){
+      document.getElementById('main').innerHTML = '<div class="error"><p>⚠️ Daten konnten nicht geladen werden.</p><p style="margin-top:8px;font-size:.8rem">'+e.message+'</p><p style="margin-top:12px;font-size:.78rem;color:#888">Ist das GitHub-Repository öffentlich? <a href="https://github.com/hoelzeljoe-dev/jagd-monitor/settings" target="_blank">Repo-Einstellungen</a></p></div>';
+    });
+}
+function buildFilters() {
+  var sources=[],years=[];
+  allFindings.forEach(function(f){ if(sources.indexOf(f.source)<0) sources.push(f.source); if(years.indexOf(f.year)<0) years.push(f.year); });
+  sources.sort(); years.sort(function(a,b){return b-a;});
+  var ss=document.getElementById('filter-source');
+  sources.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;ss.appendChild(o);});
+  var ys=document.getElementById('filter-year');
+  years.forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o);});
+  ss.addEventListener('change',renderCards); ys.addEventListener('change',renderCards);
+  document.getElementById('search').addEventListener('input',renderCards);
+}
+function renderCards() {
+  var q=document.getElementById('search').value.toLowerCase();
+  var src=document.getElementById('filter-source').value;
+  var yr=document.getElementById('filter-year').value;
+  var today=new Date().toISOString().slice(0,10);
+  var fil=allFindings.filter(function(f){
+    if(src&&f.source!==src) return false;
+    if(yr&&String(f.year)!==yr) return false;
+    if(q){ var h=((f.title||'')+' '+(f.excerpt||'')+' '+(f.ausgabe||'')).toLowerCase(); if(h.indexOf(q)<0) return false; }
+    return true;
+  });
+  document.getElementById('shown-count').textContent = fil.length===allFindings.length ? fil.length+' Einträge' : fil.length+' von '+allFindings.length;
+  var main=document.getElementById('main');
+  if(!fil.length){main.innerHTML='<div class="empty">Keine Einträge gefunden.</div>';return;}
+  main.innerHTML=fil.map(function(f,i){
+    var isNew=f.date_found===today, ex=f.excerpt||'', long=ex.length>280;
+    return '<div class="card"><div class="card-meta"><span>📰 <strong>'+esc(f.source)+'</strong></span><span>· '+esc(f.ausgabe)+'</span>'+(f.plz?'<span class="plz-tag">'+esc(f.plz)+'</span>':'')+'<span class="kw-tag">KW '+f.kw+'/'+f.year+'</span>'+(isNew?'<span class="new-tag">NEU</span>':'')+'</div><div class="card-title">'+esc(f.title)+'</div><div class="card-excerpt" id="ex'+i+'">'+esc(ex)+'</div>'+(long?'<button class="expand-btn" onclick="toggleEx('+i+',this)">▼ mehr anzeigen</button>':'')+(f.url?'<a class="card-link" href="'+esc(f.url)+'" target="_blank">→ Zum Artikel / PDF</a>':'')+'</div>';
+  }).join('');
+}
+function toggleEx(i,btn){ var el=document.getElementById('ex'+i); if(el.classList.toggle('expanded')){btn.textContent='▲ weniger';}else{btn.textContent='▼ mehr anzeigen';} }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+loadData();
+</script>
+</body>
+</html>

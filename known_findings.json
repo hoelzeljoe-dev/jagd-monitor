@@ -1,20 +1,20 @@
 {
-  "last_scan": "2026-08-24T08:00:14.663216",
+  "last_scan": "2026-08-31T14:58:39.888297",
   "last_ausgabe": {
-    "2010": 34,
-    "2136": 17,
+    "2010": 35,
+    "2136": 18,
     "2108": 17,
-    "2342": 7,
-    "2050": 17,
-    "2147": 17,
-    "2100": 34,
+    "2342": 8,
+    "2050": 18,
+    "2147": 18,
+    "2100": 35,
     "2082": 16
   },
   "last_pdf_issue": {
-    "breitenguessbach": "2026-08"
+    "breitenguessbach": "2026-09"
   },
   "known_pdf_keys": [
-    "97dd1a5a9ed7bc0b9fe69fb62ccfee8e",
-    "ef1c6090f8fb75b2fd384b28cbe53aad"
+    "ef1c6090f8fb75b2fd384b28cbe53aad",
+    "97dd1a5a9ed7bc0b9fe69fb62ccfee8e"
   ]
 }
